@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, Signal } from "@angular/core";
 import * as Prism from "prismjs";
 
-import { HTML_CODE_PRE_SELECTOR } from "../constants";
+import { HTML_CODE_PRE_SELECTOR, HTML_CODE_SELECTOR } from "../constants";
 import { SettingsService } from "./settings.service";
 import { MessageService } from "primeng/api";
 import { IndentationModeValue, LanguageDefinition } from "@types";
@@ -10,6 +10,7 @@ import { NodeUtils } from "@utils/node-utils";
 import { InlineStyleApplier } from "@utils/inline-style-applier";
 import { IndentationFormatter } from "@utils/indentation-formatter";
 import { SanitizerWrapper } from "@utils/sanitizer";
+import formatXml from "xml-formatter";
 
 /**
  * A service responsible for syntax highlighting and clipboard copying of code snippets.
@@ -85,6 +86,18 @@ export class SyntaxHighlightService {
 
     // Clone the node
     const clonedElement: HTMLPreElement = preElement.cloneNode(true) as HTMLPreElement;
+    const codeElement: HTMLElement = clonedElement?.querySelector(HTML_CODE_SELECTOR) as HTMLElement;
+    if (!codeElement) return;
+
+    // TODO: Useful order:
+    // 1. Apply minimal inline styles and remember root styles
+    // 2. Mask Indentation
+    // 3. Wrap all text nodes with span
+    // 4 .Wrap all lines with paragraphs
+    // 5. Replace markers
+
+    // Apply inline styles to ensure color/font are carried over
+    InlineStyleApplier.applyMinimalInlineStyles(preElement, clonedElement, true);
 
     // Mask the indentation
     IndentationFormatter.maskIndentation(clonedElement, this.tabSize());
@@ -92,11 +105,19 @@ export class SyntaxHighlightService {
     // Wrap all text nodes in a span element so that we can apply inline styles
     NodeUtils.wrapAllTextNodesWithSpan(clonedElement);
 
-    // Apply inline styles to ensure color/font are carried over
-    InlineStyleApplier.applyMinimalInlineStyles(preElement, clonedElement, true);
+    // console.log("wrapped with span: ");
+    // console.log(formatXml(clonedElement.outerHTML.replaceAll("\n", "NL"), { indentation: "  " }));
+    NodeUtils.wrapAllLinesWithParagraphs(codeElement);
+    console.log(formatXml(clonedElement.outerHTML, { indentation: "  " }));
+    console.log("WrappedElem: ", clonedElement);
+
+    // NodeUtils.wrapLinesInParagraphs(codeElement);
+    // console.log("P-Wrapped : ", clonedElement.outerHTML);
 
     // Replace the markers
     IndentationFormatter.replaceMarkers(clonedElement, this.mode(), this.tabSize());
+
+    console.log("Final: ", clonedElement);
 
     // Extract and sanitize HTML
     const htmlSnippet: string = SanitizerWrapper.sanitizeOutput(clonedElement.outerHTML);

@@ -52,6 +52,7 @@ export class IndentationFormatter {
         // Replace remaining markers with spaces
         .replace(RegexPatterns.MARKER_REGEX, SpecialCharacters.SPACE);
     } else {
+      // TODO: Whitespaces fixen / Stackoverflow fragen https://stigmortenmyre.no/mso/html/concepts/ofconwhitespace.htm
       if (mode === INDENTATION_MODE_MAP.Spaces) {
         // Replace each marker with a space
         replacementSymbol = SpecialCharacters.SPACE;

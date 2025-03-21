@@ -38,6 +38,10 @@ export class InlineStyleApplier {
     "font-weight": "400",
   };
 
+  public static getRootStyleProperties(): StyleProperties {
+    return this.rootStyleProperties;
+  }
+
   /**
    * Recursively applies minimal inline font styling (color, font-size, etc.) from the original node to the cloned node.
    *
@@ -82,10 +86,11 @@ export class InlineStyleApplier {
    */
   private static applyElementStyles(original: HTMLElement, cloned: HTMLElement, isRoot: boolean): void {
     // Remove classes as they are useless (because only inline styles are copied to clipboard, no stylesheets)
-    cloned.removeAttribute("class");
+    // cloned.removeAttribute("class");
 
     // Retrieve computed style for the original element
     const computedStyle: CSSStyleDeclaration = window.getComputedStyle(original);
+    let styles = "";
 
     // Apply only relevant styles
     getEntries(this.RELEVANT_STYLE_PROPERTIES).forEach(([propKey, defaultValue]) => {
@@ -98,9 +103,18 @@ export class InlineStyleApplier {
 
       // Apply style only if it's different from the default
       if (value && value !== String(defaultValue)) {
-        cloned.style.setProperty(propKey, value);
+        // Note: We manually escape the values and apply it later on as setProperty would break the escaping for some reason
+        styles += `${propKey}: ${value.replace(/"/g, "'")}; `;
       }
     });
+    cloned.setAttribute("style", styles);
+  }
+
+  // Helper to decode HTML entities
+  private static decodeHTMLEntities(str: string) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
   }
 
   /**
